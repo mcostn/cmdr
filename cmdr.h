@@ -14,6 +14,8 @@ extern int cmdr_end(struct cmdr_state *state);
 extern int cmdr_find(struct cmdr_state *state, const char *str, int *out_idx);
 extern int cmdr_command(struct cmdr_state *state, const char *cmd);
 extern int cmdr_flag(struct cmdr_state *state, const char *flag);
+extern int cmdr_confirm(struct cmdr_state *state, const char *msg);
+extern int cmdr_confirm_default(struct cmdr_state *state, const char *msg, int def);
 #ifdef __cplusplus
 }
 #endif // __cplusplus
@@ -65,7 +67,7 @@ int cmdr_find(struct cmdr_state *state, const char *str, int *out_idx)
     CMDR_ASSERT(state != NULL);
     CMDR_ASSERT(str != NULL);
 
-    for (int i = 0; i < state->argc; i++) {
+    for (int i = 1; i < state->argc; i++) {
         if (strcmp(state->argv[i], str) == 0) {
             if (out_idx != NULL)
                 *out_idx = i;
@@ -94,6 +96,59 @@ int cmdr_flag(struct cmdr_state *state, const char *flag)
                     "invalid flag name: %s",
                     flag);
     return cmdr_find(state, flag, NULL);
+}
+
+int cmdr_confirm(struct cmdr_state *state, const char *msg)
+{
+    CMDR_ASSERT(state != NULL);
+    CMDR_ASSERT(msg != NULL);
+
+    return cmdr_config_default(state, msg, 1);
+}
+
+int cmdr_confirm_default(struct cmdr_state *state, const char *msg, int def)
+{
+    CMDR_ASSERT(state != NULL);
+    CMDR_ASSERT(msg != NULL);
+
+    char yes_ch = 'Y';
+    char no_ch = 'n';
+    if (def == 0) {
+        yes_ch = tolower(yes_ch);
+        no_ch = toupper(no_ch);
+    }
+
+    printf("%s [%c/%c] ", msg, yes_ch, no_ch);
+    fflush(stdout);
+
+    char buf[32];
+    if (fgets(buf, sizeof(buf), stdin) == NULL)
+        return !!def;
+
+    buf[strcspn(buf, "\n")] = '\0';
+
+    // Trim leading whitespace
+    while (isspace(*buf))
+        buf++;
+
+    // Trim trailing whitespace
+    char *end = buf + strlen(buf);
+    while (end > buf && isspace((unsigned char)end[- 1]))
+        end--;
+    *end = '\0';
+
+    for (char *ch = buf; *ch; ++ch)
+        *ch = (char)tolower(*ch);
+
+    if (*buf == '\0')
+        return !!def;
+
+    if (strcmp(buf, "y") == 0 || strcmp(buf , "yes") == 0)
+        return 1;
+    else if (strcmp(buf, "n") == 0 || strcmp(buf , "no") == 0)
+        return 0;
+
+    return 0;
 }
 
 static int cmdr_internal_valid_command(const char *command)
