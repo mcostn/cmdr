@@ -19,15 +19,25 @@ extern int cmdr_flag(struct cmdr_state *state, const char *flag);
 #endif // __cplusplus
 
 #ifdef CMDR_IMPLEMENTATION
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <limits.h>
 
+#define CMDR_ASSERT(cond) \
+    do { \
+        if (!(cond)) { \
+            fprintf(stderr, "cmdr assert failed: %s\n", #cond); \
+            exit(EXIT_FAILURE); \
+        } \
+    } while(0);
+
 int cmdr_init(struct cmdr_state *state, int argc, char **argv)
 {
-    if (state == NULL || argc <= 0 || argv == NULL)
-        return 1;
+    CMDR_ASSERT(state != NULL);
+    CMDR_ASSERT(argc > 0);
+    CMDR_ASSERT(argv != NULL);
 
     state->argc = argc;
     state->argv = argv;
@@ -36,8 +46,7 @@ int cmdr_init(struct cmdr_state *state, int argc, char **argv)
 
 int cmdr_end(struct cmdr_state *state)
 {
-    if (state == NULL)
-        return 1;
+    CMDR_ASSERT(state != NULL);
 
     state->argc = 0;
     state->argv = NULL;
@@ -46,8 +55,8 @@ int cmdr_end(struct cmdr_state *state)
 
 int cmdr_find(struct cmdr_state *state, const char *str, int *out_idx)
 {
-    if (state == NULL || str == NULL)
-        return 0;
+    CMDR_ASSERT(state != NULL);
+    CMDR_ASSERT(str != NULL);
 
     for (int i = 0; i < state->argc; i++) {
         if (strcmp(state->argv[i], str) == 0) {
@@ -62,15 +71,15 @@ int cmdr_find(struct cmdr_state *state, const char *str, int *out_idx)
 
 int cmdr_command(struct cmdr_state *state, const char *cmd)
 {
-    if (state == NULL || cmd == NULL)
-        return 0;
+    CMDR_ASSERT(state != NULL);
+    CMDR_ASSERT(cmd != NULL);
     return cmdr_find(state, cmd, NULL);
 }
 
 int cmdr_flag(struct cmdr_state *state, const char *flag)
 {
-    if (state == NULL || flag == NULL)
-        return 0;
+    CMDR_ASSERT(state != NULL);
+    CMDR_ASSERT(flag != NULL);
     return cmdr_find(state, flag, NULL);
 }
 #endif // CMDR_IMPLEMENTATION
