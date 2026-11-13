@@ -34,7 +34,7 @@ extern int cmdr_confirm_default(struct cmdr_state *state, const char *msg, int d
             fprintf(stderr, "cmdr: " msg "\n", __VA_ARGS__); \
             exit(EXIT_FAILURE); \
         } \
-    } while(0);
+    } while(0)
 
 #define CMDR_ASSERT(cond) \
     CMDR_ASSERT_MSG(cond, "assert failed: %s", #cond)
@@ -103,7 +103,7 @@ int cmdr_confirm(struct cmdr_state *state, const char *msg)
     CMDR_ASSERT(state != NULL);
     CMDR_ASSERT(msg != NULL);
 
-    return cmdr_config_default(state, msg, 1);
+    return cmdr_confirm_default(state, msg, 1);
 }
 
 int cmdr_confirm_default(struct cmdr_state *state, const char *msg, int def)
@@ -128,24 +128,25 @@ int cmdr_confirm_default(struct cmdr_state *state, const char *msg, int def)
     buf[strcspn(buf, "\n")] = '\0';
 
     // Trim leading whitespace
-    while (isspace(*buf))
-        buf++;
+    char *start = buf;
+    while (isspace(*start))
+        start++;
 
     // Trim trailing whitespace
-    char *end = buf + strlen(buf);
-    while (end > buf && isspace((unsigned char)end[- 1]))
+    char *end = start + strlen(start);
+    while (end > start && isspace((unsigned char)end[- 1]))
         end--;
     *end = '\0';
 
-    for (char *ch = buf; *ch; ++ch)
+    for (char *ch = start; *ch; ++ch)
         *ch = (char)tolower(*ch);
 
-    if (*buf == '\0')
+    if (*start == '\0')
         return !!def;
 
-    if (strcmp(buf, "y") == 0 || strcmp(buf , "yes") == 0)
+    if (strcmp(start, "y") == 0 || strcmp(start , "yes") == 0)
         return 1;
-    else if (strcmp(buf, "n") == 0 || strcmp(buf , "no") == 0)
+    else if (strcmp(start, "n") == 0 || strcmp(start , "no") == 0)
         return 0;
 
     return 0;
