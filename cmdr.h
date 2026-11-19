@@ -1,5 +1,6 @@
 #ifndef CMDR_H
 #define CMDR_H
+
 struct cmdr_state
 {
     int argc;
@@ -14,6 +15,9 @@ extern int cmdr_end(struct cmdr_state *state);
 extern int cmdr_find(struct cmdr_state *state, const char *str, int *out_idx);
 extern int cmdr_command(struct cmdr_state *state, const char *cmd);
 extern int cmdr_flag(struct cmdr_state *state, const char *flag);
+extern int cmdr_flag_str(struct cmdr_state *state, const char *flag, const char **out);
+extern int cmdr_flag_long(struct cmdr_state *state, const char *flag, long *out);
+extern int cmdr_flag_int(struct cmdr_state *state, const char *flag, int *out);
 extern int cmdr_confirm(struct cmdr_state *state, const char *msg);
 extern int cmdr_confirm_default(struct cmdr_state *state, const char *msg, int def);
 #ifdef __cplusplus
@@ -96,6 +100,82 @@ int cmdr_flag(struct cmdr_state *state, const char *flag)
                     "invalid flag name: %s",
                     flag);
     return cmdr_find(state, flag, NULL);
+}
+
+static int cmdr_internal_flag_raw(struct cmdr_state *state,
+                                  const char *flag,
+                                  const char **out)
+{
+    CMDR_ASSERT(state != NULL);
+    CMDR_ASSERT(flag != NULL);
+    CMDR_ASSERT(out != NULL);
+    CMDR_ASSERT_MSG(cmdr_internal_valid_flag(flag),
+                    "invalid flag name: %s",
+                    flag);
+
+    size_t len = strlen(flag);
+    for (int i = 1; i < state->argc; i++) {
+        const char *arg = state->argv[i];
+        if (strncmp(arg, flag, len) != 0)
+            continue;
+
+        if (arg[len] == '=') {
+            *out = arg + len + 1;
+            return 1;
+        }
+
+        if (arg[len] == '\0') {
+            if (i + 1 >= state->argc)
+                return 0;
+            *out = state->argv[i + 1];
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+int cmdr_flag_str(struct cmdr_state *state, const char *flag, const char **out)
+{
+    CMDR_ASSERT(state != NULL);
+    CMDR_ASSERT(flag != NULL);
+    CMDR_ASSERT(out != NULL);
+    CMDR_ASSERT_MSG(cmdr_internal_valid_flag(flag),
+                    "invalid flag name: %s",
+                    flag);
+    return cmdr_internal_flag_raw(state, flag, out);
+}
+
+int cmdr_flag_long(struct cmdr_state *state, const char *flag, long *out)
+{
+    CMDR_ASSERT(out != NULL);
+
+    const char *raw;
+    if (!cmdr_internal_flag_raw(state, flag, &raw))
+        return 0;
+
+    char *end;
+    errno = 0;
+    long v = strtol(raw, &end, 10);
+    if (end == raw || *end != '\0' || errno == ERANGE)
+        return 0;
+
+    *out = v;
+    return 1;
+}
+
+int cmdr_flag_int(struct cmdr_state *state, const char *flag, int *out)
+{
+    CMDR_ASSERT(out != NULL);
+
+    long v;
+    if (!cmdr_flag_long(state, flag, &v))
+        return 0;
+    if (v < INT_MIN || v > INT_MAX)
+        return 0;
+
+    *out = (int)v;
+    return 1;
 }
 
 int cmdr_confirm(struct cmdr_state *state, const char *msg)
