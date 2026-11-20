@@ -18,6 +18,8 @@ extern int cmdr_flag(struct cmdr_state *state, const char *flag);
 extern int cmdr_flag_str(struct cmdr_state *state, const char *flag, const char **out);
 extern int cmdr_flag_long(struct cmdr_state *state, const char *flag, long *out);
 extern int cmdr_flag_int(struct cmdr_state *state, const char *flag, int *out);
+extern int cmdr_flag_double(struct cmdr_state *state, const char *flag, double *out);
+extern int cmdr_flag_float(struct cmdr_state *state, const char *flag, float *out);
 extern int cmdr_confirm(struct cmdr_state *state, const char *msg);
 extern int cmdr_confirm_default(struct cmdr_state *state, const char *msg, int def);
 #ifdef __cplusplus
@@ -31,6 +33,8 @@ extern int cmdr_confirm_default(struct cmdr_state *state, const char *msg, int d
 #include <errno.h>
 #include <limits.h>
 #include <ctype.h>
+#include <float.h>
+#include <math.h>
 
 #define CMDR_ASSERT_MSG(cond, msg, ...) \
     do { \
@@ -151,7 +155,12 @@ int cmdr_flag_str(struct cmdr_state *state, const char *flag, const char **out)
 
 int cmdr_flag_long(struct cmdr_state *state, const char *flag, long *out)
 {
+    CMDR_ASSERT(state != NULL);
+    CMDR_ASSERT(flag != NULL);
     CMDR_ASSERT(out != NULL);
+    CMDR_ASSERT_MSG(cmdr_internal_valid_flag(flag),
+                    "invalid flag name: %s",
+                    flag);
 
     const char *raw;
     if (!cmdr_internal_flag_raw(state, flag, &raw))
@@ -160,6 +169,7 @@ int cmdr_flag_long(struct cmdr_state *state, const char *flag, long *out)
     char *end;
     errno = 0;
     long v = strtol(raw, &end, 10);
+    cmdr_internal_trim_right(end);
     if (end == raw || *end != '\0' || errno == ERANGE)
         return 0;
 
@@ -169,7 +179,12 @@ int cmdr_flag_long(struct cmdr_state *state, const char *flag, long *out)
 
 int cmdr_flag_int(struct cmdr_state *state, const char *flag, int *out)
 {
+    CMDR_ASSERT(state != NULL);
+    CMDR_ASSERT(flag != NULL);
     CMDR_ASSERT(out != NULL);
+    CMDR_ASSERT_MSG(cmdr_internal_valid_flag(flag),
+                    "invalid flag name: %s",
+                    flag);
 
     long v;
     if (!cmdr_flag_long(state, flag, &v))
@@ -178,6 +193,60 @@ int cmdr_flag_int(struct cmdr_state *state, const char *flag, int *out)
         return 0;
 
     *out = (int)v;
+    return 1;
+}
+
+int cmdr_flag_double(struct cmdr_state *state, const char *flag, double *out)
+{
+    CMDR_ASSERT(state != NULL);
+    CMDR_ASSERT(flag != NULL);
+    CMDR_ASSERT(out != NULL);
+    CMDR_ASSERT_MSG(cmdr_internal_valid_flag(flag),
+                    "invalid flag name: %s",
+                    flag);
+
+    const char *raw;
+    if (!cmdr_internal_flag_raw(state, flag, &raw))
+        return 0;
+
+    errno = 0;
+    char *end = NULL;
+    double v = strtod(raw, &end);
+    if (end == raw)
+        return 0;
+    if (errno == ERANGE)
+        return 0;
+    if (!isfinite(v))
+        return 0;
+
+    cmdr_internal_trim_right(end);
+    if (*end != '\0')
+        return 0;
+
+    *out = v;
+    return 1;
+}
+
+int cmdr_flag_float(struct cmdr_state *state, const char *flag, float *out)
+{
+    CMDR_ASSERT(state != NULL);
+    CMDR_ASSERT(flag != NULL);
+    CMDR_ASSERT(out != NULL);
+    CMDR_ASSERT_MSG(cmdr_internal_valid_flag(flag),
+                    "invalid flag name: %s",
+                    flag);
+
+    double v;
+    if (!cmdr_flag_double(state, flag, &v))
+        return 0;
+    if (v > FLT_MAX || v < -FLT_MAX)
+        return 0;
+
+    float result = (float)v;
+    if (!isfinite(result))
+        return 0;
+
+    *out = result;
     return 1;
 }
 

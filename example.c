@@ -18,6 +18,8 @@ static void usage()
            "  --str       string value\n"
            "  --long      long value\n"
            "  --int       int value\n"
+           "  --double    double value\n"
+           "  --float     float value\n"
            "  -h, --help  show this message\n\n");
 }
 
@@ -58,13 +60,21 @@ int main(int argc, char **argv)
     if (cmdr_flag_str(&cmdr, "--str", &str))
         printf("flag: --str, value is %s\n", str);
 
-    long _long;
-    if (cmdr_flag_long(&cmdr, "--long", &_long))
-        printf("flag: --long, value is %ld\n", _long);
+    long long_value;
+    if (cmdr_flag_long(&cmdr, "--long", &long_value))
+        printf("flag: --long, value is %ld\n", long_value);
 
-    int integer;
-    if (cmdr_flag_int(&cmdr, "--int", &integer))
-        printf("flag: --int, value is %d\n", integer);
+    int int_value;
+    if (cmdr_flag_int(&cmdr, "--int", &int_value))
+        printf("flag: --int, value is %d\n", int_value);
+
+    double double_value;
+    if (cmdr_flag_double(&cmdr, "--double", &double_value))
+        printf("flag: --double, value is %f\n", double_value);
+
+    float float_value;
+    if (cmdr_flag_float(&cmdr, "--float", &float_value))
+        printf("flag: --float, value is %f\n", float_value);
 
     int idx;
     if (cmdr_find(&cmdr, "--argv-pos", &idx))
