@@ -45,6 +45,9 @@ extern int cmdr_confirm_default(struct cmdr_state *state, const char *msg, int d
 
 static int cmdr_internal_valid_command(const char *command);
 static int cmdr_internal_valid_flag(const char *flag);
+static void cmdr_internal_trim(char *str);
+static void cmdr_internal_trim_left(char *str);
+static void cmdr_internal_trim_right(char *str);
 
 int cmdr_init(struct cmdr_state *state, int argc, char **argv)
 {
@@ -204,32 +207,50 @@ int cmdr_confirm_default(struct cmdr_state *state, const char *msg, int def)
     char buf[32];
     if (fgets(buf, sizeof(buf), stdin) == NULL)
         return !!def;
-
     buf[strcspn(buf, "\n")] = '\0';
 
-    // Trim leading whitespace
-    char *start = buf;
-    while (isspace(*start))
-        start++;
-
-    // Trim trailing whitespace
-    char *end = start + strlen(start);
-    while (end > start && isspace((unsigned char)end[- 1]))
-        end--;
-    *end = '\0';
-
-    for (char *ch = start; *ch; ++ch)
+    cmdr_internal_trim(buf);
+    for (char *ch = buf; *ch; ++ch)
         *ch = (char)tolower(*ch);
-
-    if (*start == '\0')
+    if (*buf == '\0')
         return !!def;
 
-    if (strcmp(start, "y") == 0 || strcmp(start , "yes") == 0)
+    if (strcmp(buf, "y") == 0 || strcmp(buf , "yes") == 0)
         return 1;
-    else if (strcmp(start, "n") == 0 || strcmp(start , "no") == 0)
+    else if (strcmp(buf, "n") == 0 || strcmp(buf , "no") == 0)
         return 0;
 
     return 0;
+}
+
+static void cmdr_internal_trim(char *str)
+{
+    CMDR_ASSERT(str != NULL);
+
+    cmdr_internal_trim_left(str);
+    cmdr_internal_trim_right(str);
+}
+
+static void cmdr_internal_trim_left(char *str)
+{
+    CMDR_ASSERT(str != NULL);
+
+    size_t len = strlen(str);
+    size_t start_idx = 0;
+    while (start_idx < len && isspace(str[start_idx]))
+        start_idx++;
+    for (size_t i = 0; i <= len - start_idx; i++)
+        str[i] = str[i + start_idx];
+}
+
+static void cmdr_internal_trim_right(char *str)
+{
+    CMDR_ASSERT(str != NULL);
+
+    char *end = str + strlen(str);
+    while (end > str && isspace((unsigned char)end[-1]))
+        end--;
+    *end = '\0';
 }
 
 static int cmdr_internal_valid_command(const char *command)
